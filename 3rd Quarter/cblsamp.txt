@@ -1,0 +1,117 @@
+       IDENTIFICATION DIVISION.
+
+      ******************************************************************
+      * THIS IS THE SAMPLE TEMPLATE FOR BEGINNING COBOL (REMOVE)
+      ******************************************************************
+
+       PROGRAM-ID. CBLXX.
+       AUTHOR.  YOUR NAME.
+       DATE-WRITTEN. 03/30/99.
+       DATE-COMPILED.
+      ******************************************************************
+      * PURPOSE:  THIS PURPOSE BOX IS A REQUIRED PART OF THE INTERNAL
+      * DOCUMENTATION.  THIS IS WHERE YOU SHOULD STATE A BRIEF
+      * EXPLAINATION OF THE PROGRAM.  WHAT THE PROGRAM DOES, THE FILES
+      * USED OR CREATED AND ANY SPECIAL PROCESSING THAT TAKES PLACE.
+      ******************************************************************
+
+       ENVIRONMENT DIVISION.
+
+       INPUT-OUTPUT SECTION.
+
+       FILE-CONTROL.
+
+           SELECT COBOL-FILE-NAME
+               ASSIGN TO DDNAME.
+
+           SELECT COBOL-FILE-NAME
+               ASSIGN TO DDNAME.
+
+
+       DATA DIVISION.
+
+
+       FILE SECTION.
+
+       FD   COBOL-FILE-NAME
+            RECORD CONTAINS NN CHARACTERS.
+
+      ******************************************************************
+      * THIS IS WHERE YOU DEFINE THE LAYOUT OF THE FILE. (REMOVE)
+      ******************************************************************
+
+       01   NAME-OF-RECORD.
+            05
+
+       FD  COBOL-FILE-NAME-2
+           RECORD CONTAINS 132 CHARACTERS.
+
+       01  PRINT-REC               PIC X(132).
+
+       WORKING-STORAGE SECTION.
+      ******************************************************************
+      * THIS IS WHERE YOU DEFINE VARIABLES NEEDED THAT ARE NOT
+      * PART OF THE ANY FILE DEFINITION. (REMOVE)
+      ******************************************************************
+
+       01  WORK-FIELDS.
+           05 ARE-THERE-MORE-RECORDS  PIC XXX VALUE 'YES'.
+
+
+
+       PROCEDURE DIVISION.
+      *******************************************
+      *  MAIN PROCESSING MODULE.
+      *   - HOUSEKEEPING PERFORMED
+      *   - PRETEST LOOP IS PERFORMED UNTIL ALL RECORDS ARE READ
+      *     - FOR EACH RECORD READ, 110 PROCESS IS PERFORMED
+      *   - END OF JOB PERFORMED
+      *******************************************
+
+       000-MAIN-MODULE.
+
+           PERFORM 100-HOUSEKEEPING.
+
+           PERFORM UNTIL ARE-THERE-MORE-RECORDS = 'NO '
+             READ COBOL-FILE-NAME
+               AT END
+                 MOVE 'NO ' TO ARE-THERE-MORE-RECORDS
+               NOT AT END
+                 PERFORM 110-PROCESS
+             END-READ
+           END-PERFORM.
+
+           PERFORM 120-END-OF-JOB.
+
+           STOP RUN.
+
+      *******************************************
+      *  HOUSEKEEPING MODULE.
+      *  - FILES OPENED FOR PROCESSING
+      *******************************************
+
+       100-HOUSEKEEPING.
+
+           OPEN INPUT COBOL-FILE-NAME
+                OUTPUT COBOL-FILE-NAME.
+
+      *******************************************
+      *  DETAIL PROCESS MODULE.
+      *  - AN EXPLAINATION OF THE PROCESSING FOR EACH
+      *    RECORD BELONGS HERE
+      *******************************************
+
+       110-PROCESS.
+           COBOL STATEMENTS WILL GO HERE!
+
+      *******************************************
+      *  END OF JOB MODULE.
+      *  - FILES CLOSED
+      *******************************************
+
+       120-END-OF-JOB.
+
+           CLOSE COBOL-FILE-NAME
+                 COBOL-FILE-NAME.
+/*
+

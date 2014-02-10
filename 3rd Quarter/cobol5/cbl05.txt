@@ -1,0 +1,645 @@
+       IDENTIFICATION DIVISION.
+
+      ******************************************************************
+      * THIS IS THE SAMPLE TEMPLATE FOR BEGINNING COBOL (REMOVE)
+      ******************************************************************
+
+       PROGRAM-ID. CBL05.
+       AUTHOR.  CHRIS GLOCK.
+       DATE-WRITTEN. 03/07/06.
+       DATE-COMPILED.
+      ******************************************************************
+      * PURPOSE:  THIS PURPOSE BOX IS A REQUIRED PART OF THE INTERNAL
+      * DOCUMENTATION.  THIS IS WHERE YOU SHOULD STATE A BRIEF
+      * EXPLAINATION OF THE PROGRAM.  WHAT THE PROGRAM DOES, THE FILES
+      * USED OR CREATED AND ANY SPECIAL PROCESSING THAT TAKES PLACE.
+      ******************************************************************
+
+       ENVIRONMENT DIVISION.
+
+       INPUT-OUTPUT SECTION.
+
+       FILE-CONTROL.
+
+           SELECT MASTER-DISK-IO
+               ASSIGN TO MASTFILE
+               ORGANIZATION IS INDEXED
+               ACCESS IS RANDOM
+               RECORD KEY MAST-CUST-NO
+               FILE STATUS IS WS-MAST-STATUS.
+
+           SELECT TRANSACTION-IN
+               ASSIGN TO AS-TRANSFILE
+               FILE STATUS IS WS-TRANS-STATUS.
+
+           SELECT VALID-REPORT
+               ASSIGN TO VREPORT.
+
+           SELECT ERROR-REPORT
+               ASSIGN TO EREPORT.
+
+       DATA DIVISION.
+
+
+       FILE SECTION.
+
+       FD   MASTER-DISK-IO
+            RECORD CONTAINS 39 CHARACTERS.
+
+       01   MASTER-REC-IO.
+            05 MAST-CUST-NO        PIC X(6).
+            05 MAST-CUST-NAME      PIC X(20).
+            05 MAST-PLAN-NO        PIC 9(3).
+            05 MAST-NO-OF-CELLS    PIC 9(2).
+            05 MAST-CELL-NUM       PIC 9(10) PACKED-DECIMAL.
+            05 MAST-CELL-TYPE      PIC 9(2).
+
+       FD   TRANSACTION-IN
+            RECORD CONTAINS 40 CHARACTERS.
+
+       01   TRANS-REC-IN.
+            05 TRANS-CUST-NO       PIC X(6).
+            05 TRANS-ACTION        PIC X.
+               88 ADD-RECORD VALUE 'A'.
+               88 CHANGE-RECORD VALUE 'C'.
+               88 DELETE-RECORD VALUE 'D'.
+            05 TRANS-CUST-NAME     PIC X(20).
+            05 TRANS-PLAN-NO       PIC 9(3).
+            05 TRANS-NO-OF-CELLS   PIC 9(2).
+            05 TRANS-CELL-NUM      PIC 9(10) PACKED-DECIMAL.
+            05 TRANS-CELL-TYPE     PIC 9(2).
+
+       FD   VALID-REPORT
+            RECORD CONTAINS 132 CHARACTERS.
+
+       01   V-PRINT-REC               PIC X(132).
+
+       FD   ERROR-REPORT
+            RECORD CONTAINS 132 CHARACTERS.
+
+       01   E-PRINT-REC               PIC X(132).
+       WORKING-STORAGE SECTION.
+      ******************************************************************
+      * THIS IS WHERE YOU DEFINE VARIABLES NEEDED THAT ARE NOT
+      * PART OF THE ANY FILE DEFINITION. (REMOVE)
+      ******************************************************************
+
+       01  WORK-FIELDS.
+           05 MORE-RECORDS    PIC XXX VALUE 'YES'.
+              88 EOF                  VALUE 'NO'.
+           05 WS-MAST-STATUS  PIC X(2) VALUE SPACES.
+           05 WS-TRANS-STATUS PIC X(2) VALUE SPACES.
+           05 WS-MESSAGE      PIC X(15) VALUE SPACES.
+           05 WS-V-PAGE-CNT   PIC 999.
+           05 WS-E-PAGE-CNT   PIC 999.
+           05 WS-V-LINE-CNT   PIC 99 VALUE 60.
+           05 WS-E-LINE-CNT   PIC 99 VALUE 60.
+           05 WS-V-LINES      PIC 9.
+           05 WS-E-LINES      PIC 9.
+           05 WS-ADD-CNT      PIC 999.
+           05 WS-CHG-CNT      PIC 999.
+           05 WS-DEL-CNT      PIC 999.
+           05 WS-V-TRANS      PIC 999.
+           05 WS-E-TRANS      PIC 999.
+           05 WS-REC-READ     PIC 999.
+
+
+       01  CURRENT-DATE-AND-TIME.
+           05 CD-YEAR            PIC 9(4).
+           05 CD-MONTH           PIC 9(2).
+           05 CD-DAY             PIC 9(2).
+           05 CD-MILITARY-HOUR   PIC 9(2).
+           05 CD-MINUTE          PIC 9(2).
+
+       01  CURRENT-HOUR          PIC 9(2).
+
+       01  PLAN-R REDEFINES PLAN-TABLE INDEXED BY PLAN-X.
+           05 PLAN-TABLE OCCURS 8 TIMES.
+              05 PLAN-NUM           PIC 9(3).
+              05 PLAN-NAME          PIC X(26).
+
+       01  PLAN.
+           05             PIC 9(3) VALUE 029.
+           05             PIC X(26) VALUE '200 MINUTES PLUS'.
+           05             PIC 9(3) VALUE 035.
+           05             PIC X(26) VALUE 'PLAIN PLAN'.
+           05             PIC 9(3) VALUE 040.
+           05             PIC X(26) VALUE 'COMPANY 5K MINUTES'.
+           05             PIC 9(3) VALUE 045.
+           05             PIC X(26) VALUE 'NIGHTS AND WEEKENDS FREE'.
+           05             PIC 9(3) VALUE 050.
+           05             PIC X(26) VALUE 'SUPER FANTASTIC ULTRA FREE'.
+           05             PIC 9(3) VALUE 056.
+           05             PIC X(26) VALUE 'PREMIUM PLAN'.
+           05             PIC 9(3) VALUE 302.
+           05             PIC X(26) VALUE '60 MINUTES PER CALL'.
+           05             PIC 9(3) VALUE 505.
+           05             PIC X(26) VALUE 'AARP 500+ PLAN'.
+
+       01  TSO-ID         PIC X(7) VALUE 'XSCS119'.
+
+       01  V-HEADING-LINE-1.
+           05                           PIC X(9) VALUE SPACES.
+           05                           PIC X(6) VALUE 'DATE: '.
+           05  VHL1-MONTH               PIC Z9.
+           05                           PIC X VALUE '/'.
+           05  VHL1-DAY                 PIC 99.
+           05                           PIC X VALUE '/'.
+           05  VHL1-YEAR                PIC 9(4).
+           05                           PIC X(30) VALUE SPACES.
+           05                           PIC X(9) VALUE 'CELL  U  '.
+           05                           PIC X(12) VALUE 'LITE  PHONES'.
+           05                           PIC X(38) VALUE SPACES.
+           05                           PIC X(5) VALUE 'PAGE '.
+           05  VHL1-PAGE                PIC ZZ9.
+
+       01  V-HEADING-LINE-2.
+           05                           PIC X(9) VALUE SPACES.
+           05                           PIC X(8) VALUE 'TIME:   '.
+           05  VHL2-HOUR                PIC Z9.
+           05                           PIC X VALUE ':'.
+           05  VHL2-MINUTE              PIC 99.
+           05                           PIC X VALUE SPACE.
+           05  VHL2-TIME-OF-DAY         PIC X.
+           05                           PIC X VALUE M.
+           05                           PIC X(22) VALUE SPACES.
+           05                           PIC X(9) VALUE 'CUSTOMER '.
+           05                           PIC X(11) VALUE 'SALES FILE '.
+           05                           PIC X(12) VALUE 'MAINTENANCE '.
+           05                           PIC X(6) VALUE 'REPORT'.
+
+       01  V-UNDER-LINE.
+           05                           PIC X(47) VALUE SPACES.
+           05                           PIC X(38) VALUE ALL '_'.
+
+       01  V-HEADING-LINE-3.
+           05                           PIC X(17) VALUE SPACES.
+           05                           PIC X(11) VALUE 'TRAN  CUST.'.
+           05                           PIC X(11) VALUE SPACES.
+           05                           PIC X(8) VALUE 'CUSTOMER'.
+           05                           PIC X(48) VALUE SPACES.
+           05                           PIC X(4) VALUE 'CELL'.
+           05                           PIC X(9) VALUE SPACES.
+           05                           PIC X(4) VALUE 'CELL'.
+
+       01  V-HEADING-LINE-4.
+           05                           PIC X(17) VALUE SPACES.
+           05                           PIC X(12) VALUE 'CODE  NUMBER'.
+           05                           PIC X(13) VALUE SPACES.
+           05                           PIC X(4) VALUE 'NAME'.
+           05                           PIC X(21) VALUE SPACES.
+           05                           PIC X(9) VALUE 'PLAN NAME'.
+           05                           PIC X(19) VALUE SPACES.
+           05                           PIC X(6) VALUE 'NUMBER'.
+           05                           PIC X(8) VALUE SPACES.
+           05                           PIC X(4) VALUE 'TYPE'.
+
+       01  V-UNDER-LINE-2.
+           05                           PIC X(17) VALUE SPACES.
+           05                           PIC X(4) VALUE ALL '_'.
+           05                           PIC X(6) VALUE '  ____'.
+           05                           PIC X(13) VALUE SPACES.
+           05                           PIC X(4) VALUE ALL'_'.
+           05                           PIC X(21) VALUE SPACES.
+           05                           PIC X(9) VALUE ALL '_'.
+           05                           PIC X(19) VALUE SPACES.
+           05                           PIC X(6) VALUE '_'.
+           05                           PIC X(8) VALUE SPACES.
+           05                           PIC X(4) VALUE '_'.
+
+       01  V-DETAIL-LINE.
+           05                           PIC X(18) VALUE SPACES.
+           05 VDL-TRAN-CODE             PIC X.
+           05                           PIC X(4) VALUE SPACES.
+           05 VDL-CUST-NO               PIC 9(6).
+           05                           PIC X(5) VALUE SPACES.
+           05 VDL-CUST-NAME             PIC X(20).
+           05                           PIC X(5) VALUE SPACES.
+           05 VDL-PLAN-NAME             PIC X(26).
+           05                           PIC X(6) VALUE SPACES.
+           05                           PIC X VALUE '('.
+           05 VDL-AREA-CODE             PIC 9(3).
+           05                           PIC X(2) VALUE ') '.
+           05 VDL-PHONE-FRONT           PIC 9(3).
+           05                           PIC X VALUE '-'.
+           05 VDL-PHONE-BACK            PIC 9(4).
+           05                           PIC X(5) VALUE SPACES.
+           05 VDL-CELL-TYPE             PIC X(2).
+
+       01  V-CLOSING-LINE-1.
+           05                           PIC X(48) VALUE SPACES.
+           05                           PIC X(6) VALUE 'TOTAL '.
+           05                           PIC X(8) VALUE 'RECORDS '.
+           05                           PIC X(10) VALUE 'ADDED   = '.
+           05 VCL1-REC-ADDED            PIC ZZ9.
+
+       01  V-CLOSING-LINE-2.
+           05                           PIC X(48) VALUE SPACES.
+           05                           PIC X(6) VALUE 'TOTAL '.
+           05                           PIC X(8) VALUE 'RECORDS '.
+           05                           PIC X(10) VALUE 'CHANGED = '.
+           05 VCL2-REC-CHANGED          PIC ZZ9.
+
+       01  V-CLOSING-LINE-3.
+           05                           PIC X(48) VALUE SPACES.
+           05                           PIC X(6) VALUE 'TOTAL '.
+           05                           PIC X(8) VALUE 'RECORDS '.
+           05                           PIC X(10) VALUE 'DELETED = '.
+           05 VCL3-REC-DELETED          PIC ZZ9.
+
+       01  V-CLOSING-LINE-4.
+           05                          PIC X(43) VALUE SPACES.
+           05                          PIC X(6) VALUE 'TOTAL '.
+           05                          PIC X(8) VALUE 'INVALID '.
+           05                          PIC X(14) VALUE 'TRANSACTIONS '.
+           05                          PIC X(2) VALUE '= '.
+           05 VCL4-INVALID             PIC ZZ9.
+
+       01  V-CLOSING-LINE-5.
+           05                           PIC X(48) VALUE SPACES.
+           05                           PIC X(6) VALUE 'TOTAL '.
+           05                           PIC X(8) VALUE 'RECORDS '.
+           05                           PIC X(10) VALUE 'READ    = '.
+           05 VCL5-REC-READ             PIC ZZ9.
+
+       01  E-HEADING-LINE-1.
+           05                           PIC X(9) VALUE SPACES.
+           05                           PIC X(6) VALUE 'DATE: '.
+           05 EHL1-MONTH                PIC Z9.
+           05                           PIC X VALUE '/'.
+           05 EHL1-DAY                  PIC 99.
+           05                           PIC X VALUE '/'.
+           05 EHL1-YEAR                 PIC 9(4).
+           05                           PIC 9(29) VALUE SPACES.
+           05                           PIC X(9) VALUE 'CELL  U  '.
+           05                           PIC X(12) VALUE 'LITE  PHONES'.
+           05                           PIC X(39) VALUE SPACES.
+           05                           PIC X(5) VALUE 'PAGE '.
+           05 EHL1-PAGE                 PIC ZZ9.
+
+       01  E-HEADING-LINE-2.
+           05                           PIC X(9) VALUE SPACES.
+           05                           PIC X(8) VALUE 'TIME:   '.
+           05 EHL2-HOUR                 PIC Z9.
+           05                           PIC X VALUE ':'.
+           05 EHL2-MINUTE               PIC 99.
+           05                           PIC X VALUE SPACE.
+           05 EHL2-TIME-OF-DAY          PIC X.
+           05                           PIC X VALUE 'M'.
+           05                           PIC X(29) VALUE SPACES.
+           05                           PIC X(6) VALUE 'ERROR '.
+           05                           PIC X(12) VALUE 'TRANSACTION '.
+           05                           PIC X(6) VALUE 'REPORT'.
+
+       01  E-UNDERLINE-1.
+           05                           PIC X(53) VALUE SPACES.
+           05                           PIC X(23) VALUE ALL '_'.
+
+       01  E-HEADING-LINE-3.
+           05                           PIC X(9) VALUE SPACES.
+           05                           PIC X(12) VALUE 'TRANSACTION '.
+           05                           PIC X(6) VALUE 'REPORT'.
+           05                           PIC X(62) VALUE SPACES.
+           05                           PIC X(6) VALUE 'ERROR '.
+           05                           PIC X(7) VALUE 'MESSAGE'.
+
+       01  E-UNDERLINE-2.
+           05                           PIC X(9) VALUE SPACES.
+           05                           PIC X(18) VALUE ALL '_'.
+           05                           PIC X(62) VALUE SPACES.
+           05                           PIC X(13) VALUE ALL '_'.
+
+       01  E-DETAIL-LINE.
+           05                           PIC X(9) VALUE SPACES.
+           05 EDL-RECORD                PIC X(73).
+           05                           PIC X(6) VALUE SPACES.
+           05 EDL-ERROR-MSG             PIC X(20).
+
+       01  E-CLOSING-LINE-1.
+           05                           PIC X(45) VALUE SPACES.
+           05                           PIC X(6) VALUE 'TOTAL '.
+           05                           PIC X(10) VALUE 'NUMBER OF '.
+           05                           PIC X(6) VALUE 'ERROR '.
+           05                           PIC X(12) VALUE 'TRANSACTIONS'.
+           05                           PIC X(3) VALUE ' = '.
+           05 ECL1-ERR-TRANS            PIC ZZ9.
+
+       01  E-CLOSING-LINE-2.
+           05                           PIC X(45) VALUE SPACES.
+           05                           PIC X(6) VALUE 'TOTAL '.
+           05                           PIC X(10) VALUE 'NUMBER OF '.
+           05                           PIC X(6) VALUE 'VALID '.
+           05                           PIC X(12) VALUE 'TRANSACTIONS'.
+           05                           PIC X(3) VALUE ' = '.
+           05 ECL2-VALID-TRANS          PIC ZZ9.
+
+       01  E-CLOSING-LINE-3.
+           05                           PIC X(45) VALUE SPACES.
+           05                           PIC X(6) VALUE 'TOTAL '.
+           05                           PIC X(8) VALUE 'RECORDS '.
+           05                           PIC X(9) VALUE 'PROCESSED'.
+           05                           PIC X(12) VALUE SPACES.
+           05                           PIC X(2) VALUE '= '.
+           05 ECL3-PROCESS              PIC ZZ9.
+
+       PROCEDURE DIVISION.
+      *******************************************
+      *  MAIN PROCESSING MODULE.
+      *   - HOUSEKEEPING PERFORMED
+      *   - PRETEST LOOP IS PERFORMED UNTIL ALL RECORDS ARE READ
+      *     - FOR EACH RECORD READ, 110 PROCESS IS PERFORMED
+      *   - END OF JOB PERFORMED
+      *******************************************
+
+       000-MAIN-MODULE.
+
+           PERFORM 100-HOUSEKEEPING.
+
+           PERFORM UNTIL EOF
+             READ COBOL-FILE-NAME
+               IF WS-TRANS-STATUS = '10'
+                  MOVE 'NO' TO MORE-RECORDS
+               ELSE
+                  IF WS-TRANS-STATUS = '00'
+                     PERFORM 110-PROCESS
+                  ELSE
+                     MOVE 'NO' TO MORE-RECORDS
+                     DISPLAY '*********************************'
+                     DISPLAY ' 000-MAIN-MODULE'
+                     DISPLAY ' ERROR IN READING THE TRANS FILE'
+                     DISPLAY ' FILE STATUS IS  ', WS-TRANS-STATUS
+                     DISPLAY '*********************************'
+                  END-IF
+               END-IF
+           END-PERFORM
+
+           PERFORM 120-EOJ
+
+           STOP RUN.
+
+      *******************************************
+      *  HOUSEKEEPING MODULE.
+      *  - FILES OPENED FOR PROCESSING
+      *******************************************
+
+       100-HOUSEKEEPING.
+
+           OPEN INPUT TRANSACTION-IN
+                OUTPUT VALID-REPORT
+                       ERROR-REPORT
+                I-O MASTER-DISK-IO.
+
+           MOVE FUNCTION CURRENT-DATE TO CURRENT-DATE-AND TIME
+           MOVE CD-MONTH TO VHL1-MONTH
+                            EHL1-MONTH
+           MOVE CD-DAY   TO VHL1-DAY
+                            EHL1-DAY
+           MOVE CD-YEAR TO VHL1-YEAR
+                           EHL1-YEAR
+           IF CD-MILITARY-HOUR > 12
+              COMPUTE CURRENT-HOUR = CD-MILITARY-HOUR - 12
+              MOVE 'P' TO VHL2-TIME-OF-DAY
+                          EHL2-TIME-OF-DAY
+           ELSE
+              MOVE 'A' TO VHL2-TIME-OF-DAY
+                          EHL2-TIME-OF-DAY
+              IF CD-MILIATRY-HOUR = 0
+                 MOVE 12 TO CURRENT-HOUR
+              ELSE
+                 MOVE CD-MILITARY-HOUR TO CURRENT-HOUR
+              END-IF
+           END-IF
+           MOVE CURRENT-HOUR TO VHL2-HOUR
+                                EHL2-HOUR
+           MOVE CD-MINUTE TO VHL2-MINUTE
+                             EHL2-MINUTE
+
+           IF WS-MAST-STATUS NOT = '00'
+              MOVE 'NO' TO MORE-RECORDS
+              DISPLAY '**********************************'
+              DISPLAY ' 100-HOUSEKEEPING'
+              DISPLAY ' ERROR IN OPENING THE MASTER FILE'
+              DISPLAY ' FILE STATUS IS  ', WS-MAST-STATUS
+              DISPLAY '**********************************'
+           END-IF.
+
+           IF WS-TRANS-STATUS NOT = '00'
+              MOVE 'NO' TO MORE-RECORDS
+              DISPLAY '*********************************'
+              DISPLAY ' 100-HOUSEKEEPING'
+              DISPLAY ' ERROR IN OPENING THE TRANS FILE'
+              DISPLAY ' FILE STATUS IS  ', WS-TRANS-STATUS
+              DISPLAY '*********************************'
+           END-IF.
+
+      *******************************************
+      *  DETAIL PROCESS MODULE.
+      *  - AN EXPLAINATION OF THE PROCESSING FOR EACH
+      *    RECORD BELONGS HERE
+      *******************************************
+
+       110-PROCESS.
+      *    COBOL STATEMENTS WILL GO HERE!
+       MOVE TRANS-CUST-NO-IN TO MASTER-CUST-NO
+
+       IF  ADD-RECORD
+           PERFORM 200-ADD-RTN
+       ELSE
+           IF CHANGE-RECORD
+              PERFORM 210-UPDATE-RTN
+           ELSE
+              PERFORM 220-DELETE-RTN
+           END-IF
+       END-IF
+
+      *******************************************
+      *  END OF JOB MODULE.
+      *  - FILES CLOSED
+      *******************************************
+
+       120-END-OF-JOB.
+
+           CLOSE COBOL-FILE-NAME
+                 COBOL-FILE-NAME.
+
+           IF WS-MAST-STATUS NOT = '00'
+              DISPLAY '****************************'
+              DISPLAY ' 120-END-OF-JOB'
+              DISPLAY ' ERROR CLOSING THE MASTER FILE'
+              DISPLAY ' FILE STATUS IS  ', WS-MAST-STATUS
+              DISPLAY '****************************'
+           END-IF
+
+           IF WS-TRANS-STATUS NOT = '00'
+              DISPLAY '****************************'
+              DISPLAY ' 120-END-OF-JOB'
+              DISPLAY ' ERROR CLOSING THE TRANS FILE'
+              DISPLAY ' FILE-STATUS IS  ', WS-TRANS-STATUS
+              DISPLAY '****************************'
+           END-IF.
+
+      200-ADD-RTN.
+
+          READ MAST-DISK-IO
+
+          IF WS-MAST-STATUS = '00'
+             MOVE 'INVALID ADD' TO WS-MESSAGE
+             PERFORM 300-ERROR-RTN
+          ELSE
+             IF WS-MAST-STATUS = '23'
+                PERFORM 310-ADD-RECORD
+             ELSE
+                MOVE 'NO' TO MORE-RECORDS
+                DISPLAY '*************************'
+                DISPLAY ' 200-ADD-RTN'
+                DISPLAY ' ERROR IN READING THE MASTER FILE'
+                DISPLAY ' FILE STATUS IS  ', WS-MAST-STATUS
+                DISPLAY '*************************'
+             END-IF.
+          END-IF.
+
+      210-UPDATE-RTN.
+
+          READ MAST-DISK-IO
+
+          IF WS-MAST-STATUS = '00'
+             PERFORM 320-UPDATE-RECORD
+          ELSE
+             IF WS-MAST-STATUS = '23'
+                MOVE 'INVALID CHANGE' TO WS-MESSAGE
+                PERFORM 300-ERROR-RTN
+             ELSE
+                IF WS-MAST-STATUS NOT = '00'
+                   MOVE 'NO' TO MORE-RECORDS
+                   DISPLAY '**********************************'
+                   DISPLAY ' 210-UPDATE-RTN'
+                   DISPLAY ' ERROR IN READING THE MASTER FILE'
+                   DISPLAY ' FILE STATUS IS  ', WS-MAST-STATUS
+                   DISPLAY '**********************************'
+                END-IF
+             END-IF
+          END-IF.
+      **************************************
+      * 220-DELETE-RTN
+      * - DELETES THE CURRENT RECORD
+      **************************************
+
+       220-DELETE-RTN.
+
+           READ MAST-DISK-IO
+
+           IF WS-MAST-STATUS = '00'
+              PERFORM 330-DELETE-RECORD
+           ELSE
+              IF WS-MAST-STATUS = '23'
+                 MOVE 'INVALID DELETE' TO WS-MESSAGE
+                 PERFORM 300-ERROR-RTN
+              ELSE
+                 IF WS-MAST-STATUS NOT = '00'
+                    MOVE 'NO' TO MORE-RECORDS
+                    DISPLAY '********************************'
+                    DISPLAY ' 220-DELETE-RTN'
+                    DISPLAY ' ERROR DELETING A RECORD FROM THE
+                              FILE'
+                    DISPLAY ' FILE STATUS IS  ', WS-MAST-STATUS
+                    DISPLAY '********************************'
+                 END-IF
+              END-IF
+           END-IF.
+
+       300-ERROR-RTN.
+
+
+
+       310-ADD-RECORD.
+
+           MOVE TRANS-CUST-NAME TO MAST-CUST-NAME
+           MOVE TRANS-PLAN-NO TO MAST-PLAN-NO
+           MOVE TRANS-NO-OF-CELLS TO MAST-NO-OF-CELLS
+           MOVE TRANS-CELL-NUM TO MAST-CELL-NUM
+           MOVE TRANS-CELL-TYPE TO MAST-CELL-TYPE
+           WRITE MASTER-REC-IO
+
+           MOVE 'A' TO VDL-ACT
+           IF WS-MAST-STATUS NOT = '00'
+              MOVE 'NO' TO MORE-RECORDS
+              DISPLAY '**************************************'
+              DISPLAY ' 310-ADD-RECORD'
+              DISPLAY ' ERROR-IN-WRITING TO THE MASTER FILE'
+              DISPLAY ' FILE STATUS IS  ', WS-MAST-STATUS
+              DISPLAY '**************************************'
+           END-IF
+           PERFORM 410-WRITE-VALID-LINE
+
+       320-CHANGE-RECORD.
+           MOVE 'C' TO VDL-ACT
+           PERFORM 410-WRITE-VALID-LINE
+      *CHECK FOR CHANGED FIELD
+           IF MAST-CUST-NAME NOT = TRANS-CUST-NAME
+              MOVE TRANS-CUST-NAME TO MAST-CUST-NAME
+                                      VDL-CUST-NAME
+           END-IF
+
+           IF MAST-PLAN-NO NOT = TRANS-PLAN-NO
+              MOVE TRANS-PLAN-NO TO MAST-PLAN-NO
+              SET PLAN-X TO 1
+              SEARCH PLAN-TABLE
+                 WHEN TRANS-PLAN-NO = PLAN-NUM(PLAN-X)
+                    MOVE PLAN-NAME(PLAN-X) TO VDL-PLAN-NAME
+              END-SEARCH
+           END-IF
+
+           IF MAST-NO-OF-CELLS NOT = TRANS-NO-OF-CELLS
+              MOVE TRANS-NO-OF-CELLS TO MAST-NO-OF-CELLS
+           END-IF
+
+           IF MAST-CELL-NUM NOT = TRANS-CELL-NUM
+              MOVE TRANS-CELL-NUM TO MAST-CELL-NUM
+           END-IF
+
+           IF MAST-CELL-TYPE NOT = TRANS-CELL-TYPE
+              MOVE TRANS-CELL-TYPE TO MAST-CELL-TYPE
+                                      VDL-CELL-TYPE
+           END-IF
+
+           REWRITE MASTER-DISK-IO
+           MOVE ' ' TO VDL-ACT
+           PERFORM 410-WRITE-VALID-LINE
+
+       330-DELETE-RECORD
+
+           MOVE 'D' TO VDL-ACT
+           PERFORM 410-WRITE-VALID-LINE
+           DELETE MASTER-DISK-IO RECORD
+
+       400-WRITE-ERROR-LINES
+
+           IF WS-E-LINE-CNT >41
+              PERFORM 500-ERROR-HEADINGS
+           END-IF
+
+           MOVE TRANS-REC-IN TO EDL-RECORD
+           MOVE E-DETAIL-LINE TO E-PRINT-REC
+           WRITE E-PRINT-REC
+                 AFTER E-WS-LINES
+
+
+       410-WRITE-VALID-LINES
+
+           IF WS-V-LINE-CNT > 39
+              PERFORM 510-VALID-HEADINGS
+           END-IF
+
+           MOEVEWRITE
+
+
+       500-ERROR-HEADINGS
+
+
+
+       510-VALID-HEADINGS
+
+
+
+/*
+

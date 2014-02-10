@@ -1,0 +1,765 @@
+       IDENTIFICATION DIVISION.
+
+      ******************************************************************
+      * THIS IS THE SAMPLE TEMPLATE FOR BEGINNING COBOL (REMOVE)
+      ******************************************************************
+
+       PROGRAM-ID. CBL07.
+       AUTHOR.  CHRIS GLOCK.
+       DATE-WRITTEN. 04/11/06.
+       DATE-COMPILED.
+      ******************************************************************
+      * PURPOSE:
+      *
+      *
+      *
+      ******************************************************************
+
+       ENVIRONMENT DIVISION.
+
+       INPUT-OUTPUT SECTION.
+
+       FILE-CONTROL.
+
+           SELECT MASTER-FILE
+               ASSIGN TO MASTFILE
+               ORGANIZATION IS INDEXED
+               ACCESS IS SEQUENTIAL
+               RECORD KEY IS MP-CUST-NUM
+               FILE STATUS IS WS-MASTER-STATUS.
+
+           SELECT POLICY-FILE-MF
+               ASSIGN TO AS-POLICY
+               FILE STATUS IS WS-POLICY-STATUS.
+
+           SELECT SUMMARY-REPORT
+               ASSIGN TO SUMMARY.
+
+           SELECT INVOICE-REPORT
+               ASSIGN TO INVOICE.
+
+       DATA DIVISION.
+
+
+       FILE SECTION.
+
+       FD   MASTER-FILE
+            RECORD CONTAINS 78 TO 122 CHARACTERS.
+
+
+       01   MASTER-INFO.
+            05 MP-CUST-NUM         PIC X(5).
+            05 MP-CUST-NAME        PIC X(15).
+            05 MP-TITLE            PIC X(4).
+            05 MP-AGENT-CODE       PIC X(6).
+            05 MP-ADDRESS          PIC X(18).
+            05 MP-CITY             PIC X(10).
+            05 MP-STATE            PIC X(2).
+            05 MP-ZIP              PIC 9(9) PACKED-DECIMAL.
+      *     05 MP-ZIP-FRONT REDEFINES MP-ZIP(1:5) PIC 9(5).
+            05 MP-GENDER           PIC X.
+            05 MP-NUM-OF-POLICIES  PIC 9.
+            05 MP-POLICY OCCURS 1 TO 5 TIMES
+                         DEPENDING ON MP-NUM-OF-POLICIES.
+               10 MP-POLICY-NUM    PIC X(5).
+               10 MP-POLICY-AMT    PIC 9(3).
+               10 MP-AGE           PIC 9(2).
+               10 MP-RISK          PIC 9.
+
+
+       FD  POLICY-FILE-MF
+           RECORD CONTAINS 13 TO 68 CHARACTERS.
+
+       01  CUSTOMER-REC.
+           05 CR-RECORD-TYPE       PIC X.
+           05 CR-CUST-NUM          PIC X(5).
+           05 CR-CUST-NAME         PIC X(15).
+           05 CR-TITLE             PIC X(4).
+           05 CR-AGENT-CODE        PIC X(6).
+           05 CR-CUST-ADDRESS      PIC X(18).
+           05 CR-CUST-CITY         PIC X(10).
+           05 CR-CUST-STATE        PIC X(2).
+           05 CR-CUST-ZIP          PIC 9(9) PACKED-DECIMAL.
+           05 CR-GENDER            PIC X.
+           05 CR-NUM-OF-POLICIES   PIC 9.
+
+       01  POLICY-REC.
+           05 PR-RECORD-TYPE       PIC X.
+              88 CUST-RECORD VALUE 'C'.
+              88 POLICY-RECORD VALUE 'P'.
+           05 PR-POLICY-NUM        PIC X(5).
+           05 PR-POLICY-AMOUNT     PIC 9(3).
+           05 PR-PREMIUM-DUE       PIC 9(5)V99 PACKED-DECIMAL.
+
+       FD  SUMMARY-REPORT
+           RECORD CONTAINS 132 CHARACTERS.
+
+       01  SR-PRINT-REC               PIC X(132).
+
+       FD  INVOICE-REPORT
+           RECORD CONTAINS 132 CHARACTERS.
+
+       01  IR-PRINT-REC               PIC X(132).
+
+       WORKING-STORAGE SECTION.
+
+           EXEC SQL
+             INCLUDE EMP
+           END-EXEC.
+
+           EXEC SQL
+             INCLUDE SQLCA
+           END-EXEC.
+
+       01  WORK-FIELDS.
+           05 MORE-RECORDS         PIC XXX VALUE 'YES'.
+              88  EOF VALUE 'NO'.
+           05 WS-PAGE-CNT          PIC 9(3).
+           05 WS-LINE-CNT          PIC 9(2) VALUE 60.
+           05 WS-LINES             PIC 9.
+           05 WS-COUNTER           PIC 9.
+           05 WS-RISK              PIC 9.
+           05 WS-AGENT-FULL-NAME   PIC X(28).
+           05 WS-DATE.
+              10 WS-YEAR           PIC 9(4).
+              10 WS-MONTH          PIC 9(2).
+              10 WS-DAY            PIC 9(2).
+           05 WS-DATE-R REDEFINES WS-DATE PIC 9(8).
+           05 WS-DUE-DATE          PIC 9(8).
+           05 WS-DUE-DATE-R REDEFINES WS-DUE-DATE.
+              10 WS-DUE-YEAR       PIC 9(4).
+              10 WS-DUE-MONTH      PIC 9(2).
+              10 WS-DUE-DAY        PIC 9(2).
+           05 WS-DATE-INTEGER      PIC 9(8).
+           05 WS-MASTER-STATUS     PIC X(2).
+           05 WS-POLICY-STATUS     PIC X(2).
+           05 WS-INVOICE-LINES     PIC 9 VALUE 6.
+           05 WS-FULL-ADDRESS      PIC X(52).
+           05 WS-PREMIUM           PIC 9(5)V99.
+           05 WS-POLICY-VALUE      PIC 9(6)V99.
+           05 WS-ZIP               PIC 9(9).
+           05 WS-CUST-NAME         PIC X(20).
+
+       01  RISK-TABLE.
+           05                      PIC 9(2) VALUE 18.
+           05                      PIC 9(12) VALUE 387542604684.
+           05                      PIC 9(2) VALUE 35.
+           05                      PIC 9(12) VALUE 362539854381.
+           05                      PIC 9(2) VALUE 40.
+           05                      PIC 9(12) VALUE 370040684473.
+           05                      PIC 9(2) VALUE 45.
+           05                      PIC 9(12) VALUE 382542054623.
+           05                      PIC 9(2) VALUE 50.
+           05                      PIC 9(12) VALUE 397543704805.
+           05                      PIC 9(2) VALUE 55.
+           05                      PIC 9(12) VALUE 452549755470.
+           05                      PIC 9(2) VALUE 60.
+           05                      PIC 9(12) VALUE 522557456317.
+           05                      PIC 9(2) VALUE 65.
+           05                      PIC 9(12) VALUE 702577258495.
+           05                      PIC 9(2) VALUE 99.
+           05                      PIC 9(12) VALUE 810085758775.
+
+       01  RISK-TABLE-R REDEFINES RISK-TABLE.
+           05 RTR-TABLE OCCURS 9 TIMES INDEXED BY RISK-X.
+              10 RTR-AGE PIC 9(2).
+              10 RTR-RATE OCCURS 3 TIMES INDEXED BY RATE-X PIC 99V99.
+
+       01  CURRENT-DATE-AND-TIME.
+           05 CD-YEAR              PIC 9(4).
+           05 CD-MONTH             PIC 9(2).
+           05 CD-DAY               PIC 9(2).
+           05 CD-HOUR              PIC 9(2).
+           05 CD-MINUTE            PIC 9(2).
+
+       01  MONTH-TABLE.
+           05                      PIC X(9) VALUE 'JANUARY'.
+           05                      PIC X(9) VALUE 'FEBRUARY'.
+           05                      PIC X(9) VALUE 'MARCH'.
+           05                      PIC X(9) VALUE 'APRIL'.
+           05                      PIC X(9) VALUE 'MAY'.
+           05                      PIC X(9) VALUE 'JUNE'.
+           05                      PIC X(9) VALUE 'JULY'.
+           05                      PIC X(9) VALUE 'AUGUST'.
+           05                      PIC X(9) VALUE 'SEPTEMBER'.
+           05                      PIC X(9) VALUE 'OCTOBER'.
+           05                      PIC X(9) VALUE 'NOVEMBER'.
+           05                      PIC X(9) VALUE 'DECEMBER'.
+
+       01  MONTH-R REDEFINES MONTH-TABLE.
+           05 MONTH OCCURS 12 TIMES PIC X(9).
+
+       01  TOTALS.
+           05 TOT-NOTICES          PIC 9(3).
+           05 TOT-TOTAL-DUE        PIC 9(7)V99.
+           05 TOT-GRAND-TOTAL      PIC 9(9)V99.
+
+       01  BLANK-LINE              PIC X(132) VALUE SPACES.
+
+       01  RETURN-LINE-1.
+           05                           PIC X(11) VALUE SPACES.
+           05 RL1-DATE.
+              10 RL1-MONTH              PIC Z9.
+              10                        PIC X VALUE '/'.
+              10 RL1-DAY                PIC Z9.
+              10                        PIC X VALUE '/'.
+              10 RL1-YEAR               PIC 9(4).
+           05                           PIC X(49) VALUE SPACES.
+           05 RL1-CUST-ID               PIC X(5).
+
+       01  RETURN-LINE-2.
+           05                           PIC X(25) VALUE SPACES.
+           05 RL2-CUST-NAME             PIC X(20).
+
+       01  RETURN-LINE-3.
+           05                           PIC X(65) VALUE SPACES.
+           05 RL3-DUE-DATE.
+              10 RL3-DUE-MONTH          PIC Z9.
+              10                        PIC X VALUE '/'.
+              10 RL3-DUE-DAY            PIC Z9.
+              10                        PIC X VALUE '/'.
+              10 RL3-DUE-YEAR           PIC 9(4).
+
+       01  RETURN-LINE-4.
+           05                           PIC X(66) VALUE SPACES.
+           05 RL4-TOTAL-DUE             PIC $$,999.99.
+
+       01  RETURN-LINE-5.
+           05                           PIC X(34) VALUE SPACES.
+           05 RL5-AGENT-NAME            PIC X(28).
+
+       01  RETURN-LINE-C.
+           05                       PIC X(34) VALUE SPACES.
+           05 RLC-COMP-NAME         PIC X(17) VALUE 'NUCLEAR INSURANCE'.
+       01  RETURN-LINE-6.
+           05                           PIC X(34) VALUE SPACES.
+           05 RL6-ADDRESS               PIC X(18) VALUE '555 N ST.'.
+
+       01  RETURN-LINE-7.
+           05                           PIC X(34) VALUE SPACES.
+           05 RL7-CITY                  PIC X(11) VALUE 'SPRINGFIELD'.
+           05                           PIC X(2) VALUE ', '.
+           05 RL7-STATE                 PIC X(2) VALUE 'NE'.
+           05                           PIC X(2) VALUE SPACES.
+           05 RL8-ZIP.
+              10 ZIP-FRONT              PIC 9(5) VALUE 12345.
+              10                        PIC X VALUE '-'.
+              10 ZIP-BACK               PIC 9(4) VALUE 6789.
+
+       01  RECEIPT-LINE-1.
+           05                           PIC X(11) VALUE SPACES.
+           05 RCL1-DATE.
+              10 RCL1-MONTH             PIC Z9.
+              10                        PIC X VALUE '/'.
+              10 RCL1-DAY               PIC Z9.
+              10                        PIC X VALUE '/'.
+              10 RCL1-YEAR              PIC 9(4).
+           05                           PIC X(49) VALUE SPACES.
+           05 RCL1-CUST-NUM             PIC X(5).
+
+       01  RECEIPT-LINE-2.
+           05                           PIC X(12) VALUE SPACES.
+           05 RCL2-AGENT-NAME           PIC X(28).
+
+       01  RECEIPT-LINE-3.
+           05                           PIC X(34) VALUE SPACES.
+           05 RCL3-CUST-NAME            PIC X(20).
+
+       01  RECEIPT-LINE-4.
+           05                           PIC X(34) VALUE SPACES.
+           05 RCL4-CUST-ADDRESS         PIC X(45).
+
+       01  POLICY-LINE.
+           05                           PIC X(5) VALUE SPACES.
+           05 PL-POLICY-NUM             PIC X(5).
+           05                           PIC X(35) VALUE SPACES.
+           05 PL-POLICY-AMT             PIC ZZ9,999.99.
+           05                           PIC X(9) VALUE SPACES.
+           05 PL-CALC-AMOUNT            PIC $ZZ,Z99.99.
+
+       01 RECEIPT-LINE-5.
+          05                            PIC X(64) VALUE SPACES.
+          05 RCL5-DUE-DATE.
+             10 RCL5-MONTH              PIC Z9.
+             10                         PIC X VALUE '/'.
+             10 RCL5-DAY                PIC Z9.
+             10                         PIC X VALUE '/'.
+             10 RCL5-YEAR               PIC 9(4).
+
+       01 RECEIPT-LINE-6.
+          05                            PIC X(61) VALUE SPACES.
+          05 RCL6-TOTAL-DUE             PIC $$$$$$$$99.99.
+
+       01  TSO-ID                       PIC X(7) VALUE 'XSCS119'.
+
+       01  HEADING-LINE-1.
+           05                           PIC X(6) VALUE 'DATE: '.
+           05 HL1-DATE.
+              10 HL1-MONTH              PIC X(9).
+              10                        PIC X VALUE SPACE.
+              10 HL1-DAY                PIC Z9.
+              10                        PIC X(2) VALUE ', '.
+              10 HL1-YEAR               PIC 9(4).
+           05                           PIC X(31) VALUE SPACES.
+           05                           PIC X(8) VALUE 'NUCLEAR '.
+           05                           PIC X(9) VALUE 'INSURANCE'.
+           05                           PIC X(51) VALUE SPACES.
+           05                           PIC X(6) VALUE 'PAGE: '.
+           05 HL1-PAGE                  PIC ZZ9.
+
+       01  HEADING-LINE-2.
+           05                           PIC X(6) VALUE 'TIME: '.
+           05 HL2-TIME.
+              10 HL2-HOUR               PIC Z9.
+              10                        PIC X VALUE ':'.
+              10 HL2-MINUTE             PIC 99.
+              10                        PIC X VALUE SPACE.
+              10 HL2-TIME-OF-DAY        PIC X.
+              10                        PIC X VALUE 'M'.
+           05                           PIC X(41) VALUE SPACES.
+           05                           PIC X(9) VALUE 'CUSTOMER '.
+           05                           PIC X(8) VALUE 'ACCOUNTS'.
+
+       01  HEADING-UNDERLINE-1.
+           05                           PIC X(55) VALUE SPACES.
+           05                           PIC X(17) VALUE ALL '_'.
+
+       01  HEADING-LINE-3.
+           05                           PIC X(8) VALUE 'CUSTOMER'.
+           05                           PIC X(9) VALUE SPACES.
+           05                           PIC X(8) VALUE 'CUSTOMER'.
+           05                           PIC X(51) VALUE SPACES.
+           05                           PIC X(7) VALUE 'PAYMENT'.
+           05                           PIC X(26) VALUE SPACES.
+           05                           PIC X(5) VALUE 'AGENT'.
+
+       01  HEADING-LINE-4.
+           05                           PIC X(7) VALUE ' NUMBER'.
+           05                           PIC X(12) VALUE SPACES.
+           05                           PIC X(4) VALUE 'NAME'.
+           05                           PIC X(25) VALUE SPACES.
+           05                           PIC X(7) VALUE 'ADDRESS'.
+           05                           PIC X(21) VALUE SPACES.
+           05                           PIC X(8) VALUE 'DUE DATE'.
+           05                           PIC X(4) VALUE SPACES.
+           05                           PIC X(9) VALUE 'TOTAL DUE'.
+           05                           PIC X(13) VALUE SPACES.
+           05                           PIC X(4) VALUE 'NAME'.
+
+       01  HEADING-UNDERLINE-2.
+           05                           PIC X VALUE SPACE.
+           05                           PIC X(6) VALUE ALL '_'.
+           05                           PIC X(12) VALUE SPACES.
+           05                           PIC X(4) VALUE ALL '_'.
+           05                           PIC X(25) VALUE SPACES.
+           05                           PIC X(7) VALUE ALL '_'.
+           05                           PIC X(21) VALUE SPACES.
+           05                           PIC X(8) VALUE ALL '_'.
+           05                           PIC X(4) VALUE SPACES.
+           05                           PIC X(9) VALUE ALL '_'.
+           05                           PIC X(13) VALUE SPACES.
+           05                           PIC X(4) VALUE ALL '_'.
+
+       01  DETAIL-LINE.
+           05                           PIC X VALUE SPACE.
+           05 DL-CUST-NUM               PIC X(5).
+           05                           PIC X(7) VALUE SPACES.
+           05 DL-CUST-NAME              PIC X(15).
+           05                           PIC X VALUE SPACES.
+           05 DL-ADDRESS                PIC X(45).
+           05                           PIC X VALUE SPACES.
+           05 DL-PAYMENT-DUE-DATE.
+              10 DL-DUE-MONTH           PIC Z9.
+              10                        PIC X VALUE '/'.
+              10 DL-DUE-DAY             PIC Z9.
+              10                        PIC X VALUE '/'.
+              10 DL-DUE-YEAR            PIC 9(4).
+           05                           PIC X(2) VALUE SPACES.
+           05 DL-TOTAL-DUE              PIC ZZZ,Z99.99.
+           05                           PIC X(2) VALUE SPACES.
+           05 DL-AGENT-NAME             PIC X(28).
+
+       01  TOTAL-LINE-1.
+           05                        PIC X(57) VALUE SPACES.
+           05                        PIC X(16) VALUE 'TOTAL NOTICES:  '.
+           05 TL1-NOTICES            PIC ZZ9.
+
+       01  TOTAL-LINE-2.
+           05                        PIC X(45) VALUE SPACES.
+           05                        PIC X(12) VALUE 'GRAND TOTAL '.
+           05                        PIC X(6) VALUE 'DUE:  '.
+           05 TL2-TOTAL-DUE          PIC $$$$$$$$99.99.
+
+
+       PROCEDURE DIVISION.
+      *******************************************
+      *  MAIN PROCESSING MODULE.
+      *   - HOUSEKEEPING PERFORMED
+      *   - PRETEST LOOP IS PERFORMED UNTIL ALL RECORDS ARE READ
+      *     - FOR EACH RECORD READ, 110 PROCESS IS PERFORMED
+      *   - END OF JOB PERFORMED
+      *******************************************
+
+       000-MAIN-MODULE.
+
+           PERFORM 100-HOUSEKEEPING.
+
+           PERFORM UNTIL MORE-RECORDS = 'NO '
+             READ MASTER-FILE
+               AT END
+                 MOVE 'NO ' TO MORE-RECORDS
+               NOT AT END
+                 PERFORM 110-PROCESS
+             END-READ
+           END-PERFORM.
+
+           PERFORM 120-END-OF-JOB.
+
+           STOP RUN.
+
+      *******************************************
+      *  HOUSEKEEPING MODULE.
+      *  - FILES OPENED FOR PROCESSING
+      *******************************************
+
+       100-HOUSEKEEPING.
+
+           OPEN INPUT MASTER-FILE
+                OUTPUT POLICY-FILE-MF
+                       SUMMARY-REPORT
+                       INVOICE-REPORT.
+
+      * CHECK FILE STATUS
+           IF WS-POLICY-STATUS NOT = '00'
+              MOVE 'NO ' TO MORE-RECORDS
+              DISPLAY '******************************************'
+              DISPLAY ' 100-HOUSEKEEPING'
+              DISPLAY ' ERROR IN OPENING THE TRANSACTION FILE'
+              DISPLAY ' FILE STATUS IS,  ' WS-POLICY-STATUS
+              DISPLAY '******************************************'
+           END-IF
+           IF WS-MASTER-STATUS NOT = '00'
+              MOVE 'NO ' TO MORE-RECORDS
+              DISPLAY '******************************************'
+              DISPLAY ' 100-HOUSEKEEPING'
+              DISPLAY ' ERROR IN OPENING THE MASTER FILE'
+              DISPLAY ' FILE STATUS IS,  ' WS-MASTER-STATUS
+              DISPLAY '******************************************'
+           END-IF
+              MOVE FUNCTION CURRENT-DATE TO CURRENT-DATE-AND-TIME
+              MOVE MONTH (CD-MONTH) TO HL1-MONTH
+              MOVE CD-MONTH TO WS-MONTH
+                               RL1-MONTH
+
+              MOVE CD-DAY TO HL1-DAY
+                             WS-DAY
+                             RL1-DAY
+
+              MOVE CD-YEAR TO HL1-YEAR
+                              WS-YEAR
+                              RL1-YEAR
+
+              IF CD-HOUR < 12
+                 MOVE 'A' TO HL2-TIME-OF-DAY
+              ELSE
+                 MOVE 'P' TO HL2-TIME-OF-DAY
+              END-IF
+
+              IF CD-HOUR > 12
+                 COMPUTE HL2-HOUR = CD-HOUR - 12
+              ELSE
+                 IF CD-HOUR NOT = 0
+                    MOVE CD-HOUR TO HL2-HOUR
+                 ELSE
+                    MOVE 12 TO HL2-HOUR
+                 END-IF
+              END-IF
+
+              MOVE CD-MINUTE TO HL2-MINUTE
+
+
+              COMPUTE WS-DATE-INTEGER =
+                 FUNCTION INTEGER-OF-DATE (WS-DATE-R)
+              ADD 14 TO WS-DATE-INTEGER
+              COMPUTE WS-DUE-DATE =
+                 FUNCTION DATE-OF-INTEGER(WS-DATE-INTEGER)
+              MOVE WS-DUE-DAY  TO DL-DUE-DAY
+                                  RL3-DUE-DAY
+                                  RCL5-DAY
+              MOVE WS-DUE-MONTH  TO DL-DUE-MONTH
+                                    RL3-DUE-MONTH
+                                    RCL5-MONTH
+              MOVE WS-DUE-YEAR TO DL-DUE-YEAR
+                                  RL3-DUE-YEAR
+                                  RCL5-YEAR.
+      *******************************************
+      *
+      *
+      *
+      *******************************************
+
+       110-PROCESS.
+      *    COBOL STATEMENTS WILL GO HERE!
+
+           IF WS-LINE-CNT > 47
+              PERFORM 200-HEADINGS
+           END-IF
+
+      *    MOVE SPACES TO DETAIL-LINE
+           PERFORM VARYING WS-COUNTER FROM 1 BY 1
+              UNTIL WS-COUNTER > MP-NUM-OF-POLICIES
+               SET RISK-X TO 1
+               SEARCH RTR-TABLE
+                 WHEN MP-AGE (WS-COUNTER) < RTR-AGE (RISK-X)
+                   MOVE MP-RISK(WS-COUNTER) TO WS-RISK
+                   COMPUTE WS-PREMIUM
+                   = RTR-RATE (RISK-X, WS-RISK)
+                     * MP-POLICY-AMT (WS-COUNTER)
+                   ADD WS-PREMIUM TO TOT-TOTAL-DUE
+               END-SEARCH
+           END-PERFORM
+
+           MOVE MP-CUST-NUM TO DL-CUST-NUM
+                               CR-CUST-NUM
+           MOVE MP-CUST-NAME TO DL-CUST-NAME
+                                CR-CUST-NAME
+           MOVE MP-TITLE TO CR-TITLE
+           MOVE MP-AGENT-CODE TO CR-AGENT-CODE
+           MOVE MP-ADDRESS TO CR-CUST-ADDRESS
+           MOVE MP-CITY TO CR-CUST-CITY
+           MOVE MP-STATE TO CR-CUST-STATE
+           MOVE MP-ZIP TO CR-CUST-ZIP
+                          WS-ZIP
+           MOVE MP-GENDER TO CR-GENDER
+           MOVE MP-NUM-OF-POLICIES TO CR-NUM-OF-POLICIES
+
+           MOVE SPACES TO WS-CUST-NAME
+           STRING MP-TITLE DELIMITED BY ' '
+                  ' ' DELIMITED BY SIZE
+                  MP-CUST-NAME DELIMITED BY '  '
+                  INTO WS-CUST-NAME
+           MOVE WS-CUST-NAME TO RL2-CUST-NAME
+                                RCL3-CUST-NAME
+
+           MOVE SPACES TO WS-FULL-ADDRESS
+           STRING MP-ADDRESS DELIMITED BY '  '
+           ' ' DELIMITED BY SIZE
+           MP-CITY DELIMITED BY '  '
+           ', ' DELIMITED BY SIZE
+           MP-STATE DELIMITED BY SPACE
+           '  ' DELIMITED BY SIZE
+           WS-ZIP(1:5) DELIMITED BY ' '
+           '-' DELIMITED BY SIZE
+           WS-ZIP(6:4) DELIMITED BY ' '
+                     INTO WS-FULL-ADDRESS
+           MOVE WS-FULL-ADDRESS TO DL-ADDRESS
+                                   RCL4-CUST-ADDRESS.
+
+           MOVE TOT-TOTAL-DUE TO DL-TOTAL-DUE
+           MOVE MP-AGENT-CODE TO EMPNO
+           MOVE SPACES TO WS-AGENT-FULL-NAME
+                          FIRSTNME
+                          LASTNAME
+
+            EXEC SQL
+              SELECT FIRSTNME, LASTNAME
+                INTO :FIRSTNME, :LASTNAME
+                FROM SCM.EMP
+                  WHERE EMPNO = :EMPNO
+            END-EXEC
+
+            STRING FIRSTNME-TEXT DELIMITED BY '  '
+                   ' ' DELIMITED BY SIZE
+                   LASTNAME-TEXT DELIMITED BY SIZE
+                   INTO WS-AGENT-FULL-NAME
+            MOVE WS-AGENT-FULL-NAME TO DL-AGENT-NAME
+            MOVE DETAIL-LINE TO SR-PRINT-REC
+            WRITE SR-PRINT-REC
+               AFTER WS-LINES
+            WRITE CUSTOMER-REC
+            PERFORM 210-WRITE-INVOICE
+
+      * INCREMENT COUNTERS
+      *   ADD SUBTOTAL TO TOTAL DUE
+            ADD TOT-TOTAL-DUE TO TOT-GRAND-TOTAL
+            MOVE 0 TO TOT-TOTAL-DUE
+            ADD WS-LINES TO WS-LINE-CNT
+      *     ADD MP-NUM-OF-POLICIES TO TOT-NOTICES
+            ADD 1 TO TOT-NOTICES.
+
+      *******************************************
+      *
+      *
+      *******************************************
+
+       120-END-OF-JOB.
+
+           MOVE TOT-NOTICES TO TL1-NOTICES
+           MOVE TOTAL-LINE-1 TO SR-PRINT-REC
+           WRITE SR-PRINT-REC
+               AFTER 3
+           MOVE TOT-GRAND-TOTAL TO TL2-TOTAL-DUE
+           MOVE TOTAL-LINE-2 TO SR-PRINT-REC
+           WRITE SR-PRINT-REC
+               AFTER 2
+
+           CLOSE MASTER-FILE
+                 POLICY-FILE-MF
+
+           IF WS-POLICY-STATUS NOT = '00'
+              DISPLAY '******************************************'
+              DISPLAY ' 120-CLOSING'
+              DISPLAY ' ERROR IN CLOSING THE TRANSACTION FILE'
+              DISPLAY ' FILE STATUS IS,  ' WS-POLICY-STATUS
+              DISPLAY '******************************************'
+           END-IF
+           IF WS-MASTER-STATUS NOT = '00'
+              DISPLAY '******************************************'
+              DISPLAY ' 120-CLOSING'
+              DISPLAY ' ERROR IN CLOSING THE MASTER FILE'
+              DISPLAY ' FILE STATUS IS,  ' WS-MASTER-STATUS
+              DISPLAY '******************************************'
+           END-IF.
+       200-HEADINGS.
+
+           MOVE TSO-ID TO SR-PRINT-REC
+           WRITE SR-PRINT-REC
+              AFTER PAGE
+
+           ADD 1 TO WS-PAGE-CNT
+           MOVE WS-PAGE-CNT TO HL1-PAGE.
+           MOVE HEADING-LINE-1 TO SR-PRINT-REC
+           WRITE SR-PRINT-REC
+              AFTER 2
+
+           MOVE HEADING-LINE-2 TO SR-PRINT-REC
+           WRITE SR-PRINT-REC
+
+           MOVE HEADING-UNDERLINE-1 TO SR-PRINT-REC
+           WRITE SR-PRINT-REC
+              AFTER 0
+
+           MOVE HEADING-LINE-3 TO SR-PRINT-REC
+           WRITE SR-PRINT-REC
+              AFTER 2
+
+           MOVE HEADING-LINE-4 TO SR-PRINT-REC
+           WRITE SR-PRINT-REC
+
+           MOVE HEADING-UNDERLINE-2 TO SR-PRINT-REC
+           WRITE SR-PRINT-REC
+              AFTER 0
+
+           MOVE 0 TO WS-LINE-CNT
+           MOVE 2 TO WS-LINES.
+      *MOVE HEADING LINES
+
+       210-WRITE-INVOICE.
+
+           MOVE BLANK-LINE TO IR-PRINT-REC
+           WRITE IR-PRINT-REC
+              AFTER PAGE
+
+      *    MOVE DATA TO RETURN LINES
+      *    MOVE WS-DATE TO RL1-DATE
+           MOVE MP-CUST-NUM TO RL1-CUST-ID
+           MOVE RETURN-LINE-1 TO IR-PRINT-REC
+      *                          RECEIPT-LINE-1
+           WRITE IR-PRINT-REC
+              AFTER 4
+
+      *    MOVE WS-CUST-NAME TO RL2-CUST-NAME
+      *                      RCL3-CUST-NAME
+           MOVE RETURN-LINE-2 TO IR-PRINT-REC
+           WRITE IR-PRINT-REC
+              AFTER 7
+
+      *    MOVE WS-DUE-DATE-R TO RL3-DUE-DATE
+      *                          RCL5-DUE-DATE
+           MOVE RETURN-LINE-3 TO IR-PRINT-REC
+           WRITE IR-PRINT-REC
+              AFTER 3
+
+           MOVE TOT-TOTAL-DUE TO RL4-TOTAL-DUE
+                                 RCL6-TOTAL-DUE
+           MOVE RETURN-LINE-4 TO IR-PRINT-REC
+           WRITE IR-PRINT-REC
+              AFTER 2
+
+           MOVE WS-AGENT-FULL-NAME TO RL5-AGENT-NAME
+                                      RCL2-AGENT-NAME
+           MOVE RETURN-LINE-5 TO IR-PRINT-REC
+           WRITE IR-PRINT-REC
+              AFTER 4
+
+           MOVE RETURN-LINE-C TO IR-PRINT-REC
+           WRITE IR-PRINT-REC
+
+           MOVE RETURN-LINE-6 TO IR-PRINT-REC
+           WRITE IR-PRINT-REC
+              AFTER 1
+
+           MOVE RETURN-LINE-7 TO IR-PRINT-REC
+           WRITE IR-PRINT-REC
+              AFTER 1
+
+      *    MOVE RECEIPT-LINE-1 TO IR-PRINT-REC
+           MOVE RETURN-LINE-1 TO IR-PRINT-REC
+           WRITE IR-PRINT-REC
+              AFTER 4
+
+           MOVE RECEIPT-LINE-2 TO IR-PRINT-REC
+           WRITE IR-PRINT-REC
+              AFTER 1
+
+           MOVE RECEIPT-LINE-3 TO IR-PRINT-REC
+           WRITE IR-PRINT-REC
+           AFTER 5
+
+      *    MOVE FULL-ADDRESS TO RCL4-CUST-ADDRESS
+           MOVE RECEIPT-LINE-4 TO IR-PRINT-REC
+           WRITE IR-PRINT-REC
+              AFTER 1
+
+           PERFORM VARYING WS-COUNTER FROM 1 BY 1
+      *    UNTIL WS-COUNTER > MP-NUM-OF-POLICIES
+           UNTIL WS-COUNTER > 5
+              IF WS-COUNTER <= MP-NUM-OF-POLICIES
+              MOVE 'P' TO PR-RECORD-TYPE
+
+              MOVE MP-POLICY-NUM (WS-COUNTER) TO PL-POLICY-NUM
+                                                 PR-POLICY-NUM
+              COMPUTE WS-POLICY-VALUE = MP-POLICY-AMT(WS-COUNTER) * 1000
+              MOVE WS-POLICY-VALUE TO PL-POLICY-AMT
+                                   PR-POLICY-AMOUNT
+              SET RISK-X, RATE-X TO 1
+              SEARCH RTR-TABLE
+              WHEN MP-AGE (WS-COUNTER) < RTR-AGE (RISK-X)
+              COMPUTE WS-PREMIUM =
+               RTR-RATE (RISK-X, RATE-X) * MP-POLICY-AMT (WS-COUNTER)
+              END-SEARCH
+              MOVE WS-PREMIUM TO PL-CALC-AMOUNT
+
+              MOVE POLICY-LINE TO IR-PRINT-REC
+              WRITE POLICY-REC
+              WRITE IR-PRINT-REC
+                 AFTER WS-INVOICE-LINES
+              MOVE 2 TO WS-INVOICE-LINES
+              ELSE
+                 MOVE BLANK-LINE TO IR-PRINT-REC
+                 WRITE IR-PRINT-REC
+                    AFTER WS-INVOICE-LINES
+              END-IF
+           END-PERFORM
+
+
+           MOVE RECEIPT-LINE-5 TO IR-PRINT-REC
+           WRITE IR-PRINT-REC
+              AFTER 3
+
+           MOVE RECEIPT-LINE-6 TO IR-PRINT-REC
+           WRITE IR-PRINT-REC
+              AFTER 1
+
+           MOVE 6 TO WS-INVOICE-LINES.
+

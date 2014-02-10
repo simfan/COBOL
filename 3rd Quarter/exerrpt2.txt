@@ -1,0 +1,237 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. EXERPRT.
+       AUTHOR. CHRIS GLOCK.
+       DATE-WRITTEN. APRIL 4,2000.
+       DATE-COMPILED.
+      ***************************************************************
+      * PURPOSE:  THIS PROGRAM WILL CREATE A DATASET THAT WILL
+      * CONTAIN WEEKLY PAROLL INFORMATION.  THE WEEKLY WAGE IS
+      * CALCULATED AND THE TOTAL NUMBER OF RECORDS PROCESSED IS
+      * ACCUMULATED.
+      ***************************************************************
+       ENVIRONMENT DIVISION.
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+
+            SELECT EMPLOYEE-DATA
+                   ASSIGN TO EMPDATI.
+
+            SELECT PAYROLL-DATA
+                   ASSIGN TO EMPDATO.
+            SELECT PAY-RPT
+                   ASSIGN TO EMPRPT.
+       DATA DIVISION.
+       FILE SECTION.
+
+       FD  EMPLOYEE-DATA
+           RECORD CONTAINS 25 CHARACTERS.
+
+       01  EMPLOYEE-RECORD.
+           05  ER-EMPLOYEE-NAME    PIC X(20).
+           05  ER-HOURS-WORKED     PIC 9(2).
+           05  ER-HOURLY-WAGE      PIC 9V99.
+
+       FD  PAYROLL-DATA
+           RECORD CONTAINS 30 CHARACTERS.
+
+       01  PAYROLL-RECORD.
+           05  PR-EMPLOYEE-NAME    PIC X(20).
+           05  PR-HOURS-WORKED     PIC 9(2).
+           05  PR-HOURLY-WAGE      PIC 9V99.
+           05  PR-WEEKLY-WAGES     PIC 9(3)V99.
+
+       FD  PAY-RPT
+           RECORD CONTAINS 132 CHARACTERS.
+
+       01  PRINT-REC                 PIC X(132).
+       WORKING-STORAGE SECTION.
+
+       01  WORK-FIELDS.
+           05 MORE-RECORDS  PIC X(3) VALUE 'YES'.
+           05 WS-EMP-CNT    PIC 9(3).
+
+       01  PRINT-CONTROL.
+           05 WS-LINE-CNT          PIC 99 VALUE 60.
+           05 WS-PAGE-CNT          PIC 9(3) VALUE 0.
+           05 WS-MAX-LINES         PIC 99.
+           05 WS-LINES             PIC 9 VALUE 2.
+
+       01  TOTAL-FIELDS.
+           05 TOTAL-HOURS          PIC 9(3).
+           05 TOTAL-RATE           PIC 9(2)V9(2).
+           05 TOTAL-WAGE           PIC 9(4)V9(2).
+
+       01  CURRENT-DATE-AND-TIME.
+           05 CD-YEAR              PIC 9999.
+           05 CD-MONTH             PIC 99.
+           05 CD-DAY               PIC 99.
+           05 CD-HOUR              PIC 99.
+           05 CD-MINUTE            PIC 99.
+           05                      PIC X(9).
+
+       01  TSO-ID                  PIC X(7) VALUE 'XSCS119'.
+       01  HEADING-LINE-1.
+           05                      PIC X(22) VALUE SPACES.
+           05               PIC X(28) VALUE 'WONDERFUL WORLD OF DISNEY'.
+           05                      PIC X(29) VALUE SPACES.
+           05                      PIC X(5) VALUE 'PAGE '.
+           05 HL1-PAGE             PIC ZZ9.
+       01  HEADING-LINE-2.
+           05                      PIC X(6) VALUE 'DATE: '.
+           05 HL2-MONTH            PIC 99.
+           05                      PIC X(1) VALUE '/'.
+           05 HL2-DAY              PIC 99.
+           05                      PIC X(1) VALUE '/'.
+           05 HL2-YEAR             PIC 9(4).
+           05                      PIC X(12) VALUE SPACES.
+           05                      PIC X(15) VALUE 'PAYROLL  REPORT'.
+       01  HEADING-LINE-3.
+           05                      PIC X(6) VALUE 'TIME: '.
+           05 HL3-HOUR             PIC 99.
+           05                      PIC X(1) VALUE ':'.
+           05 HL3-MINUTE           PIC 99.
+       01  DETAIL-LINE.
+           05                      PIC X(20) VALUE SPACES.
+           05 DL-NAME              PIC X(20).
+           05                      PIC X(10) VALUE SPACES.
+           05 DL-HOURS             PIC 9(2).
+           05                      PIC X(7) VALUE SPACES.
+           05 DL-RATE              PIC $9.99.
+           05                      PIC X(5) VALUE SPACES.
+           05 DL-HOUR-WAGE         PIC $ZZ9.99.
+       01  TOTAL-LINE-1.
+           05                      PIC X(20) VALUE SPACES.
+           05       PIC X(20) VALUE '***    TOTALS    ***'.
+       01  TOTAL-LINE-2.
+           05                      PIC X(49) VALUE SPACES.
+           05 TL2-HOURS            PIC ZZ9.
+           05                      PIC X(6) VALUE SPACES.
+           05 TL2-RATE             PIC $Z9.99.
+           05                      PIC X(3) VALUE SPACES.
+           05 TL2-WAGES            PIC $Z,ZZ9.99.
+       PROCEDURE DIVISION.
+
+      ***************************************************************
+      * 000-MAIN.
+      *  - PERFORM 100-HSK
+      *  - PERFORM 110-WAGE-ROUTINE UNTIL ALL RECORDS HAVE BEEN READ
+      *  - PERFORM 120-EOJ
+      *  - RETURN CONTROL BACK TO THE OS
+      ***************************************************************
+       000-MAIN.
+
+           PERFORM 100-HSK.
+
+           PERFORM UNTIL MORE-RECORDS = 'NO '
+               READ EMPLOYEE-DATA
+                   AT END
+                     MOVE 'NO ' TO MORE-RECORDS
+                   NOT AT END
+                     PERFORM 110-WAGE-ROUTINE
+               END-READ
+           END-PERFORM.
+
+           PERFORM 120-EOJ.
+
+           STOP RUN.
+
+      ***************************************************************
+      * 100-HSK.
+      *  - FILES ARE OPENED TO BEGIN PROCESSING
+      ***************************************************************
+       100-HSK.
+
+           OPEN INPUT  EMPLOYEE-DATA
+                OUTPUT PAYROLL-DATA
+                       PAY-RPT.
+           MOVE FUNCTION CURRENT-DATE TO CURRENT-DATE-AND-TIME.
+           MOVE CD-MONTH TO HL2-MONTH.
+           MOVE CD-DAY TO HL2-DAY.
+           MOVE CD-YEAR TO HL2-YEAR.
+           MOVE CD-HOUR TO HL3-HOUR.
+           MOVE CD-MINUTE TO HL3-MINUTE.
+      ***************************************************************
+      * 110-WAGE-ROUTINE.
+      *  - DATA IS MOVED FROM THE INPUT BUFFER TO THE OUTPUT BUFFER
+      *  - WEEKLY WAGE IS CALCULATED
+      *         WAGE = RATE * HOURS WORKED
+      *  - THE OUTPUT RECORD IS WRITTEN TO THE DATASET
+      *  - ACCUMULATE RECORD COUNT
+      ***************************************************************
+       110-WAGE-ROUTINE.
+           IF WS-LINE-CNT>=53
+                PERFORM 200-HEADINGS
+           END-IF
+
+           MOVE ER-EMPLOYEE-NAME TO
+                PR-EMPLOYEE-NAME
+                DL-NAME.
+           MOVE ER-HOURLY-WAGE   TO
+                PR-HOURLY-WAGE
+                DL-RATE.
+           MOVE ER-HOURS-WORKED  TO
+                PR-HOURS-WORKED
+                DL-HOURS.
+
+           COMPUTE PR-WEEKLY-WAGES =
+              ER-HOURS-WORKED * PR-HOURLY-WAGE
+              MOVE PR-WEEKLY-WAGES TO DL-HOUR-WAGE
+              MOVE DETAIL-LINE TO PRINT-REC
+              WRITE PRINT-REC
+                AFTER ADVANCING 2 LINES
+
+              ADD ER-HOURS-WORKED TO TOTAL-HOURS
+              ADD ER-HOURLY-WAGE TO TOTAL-RATE
+              ADD PR-WEEKLY-WAGES TO TOTAL-WAGE
+
+           ADD WS-LINES TO WS-LINE-CNT
+           ADD 1 TO WS-EMP-CNT
+
+           WRITE PAYROLL-RECORD.
+
+      ***************************************************************
+      * 120-EOJ.
+      *  - FILES ARE CLOSED
+      ***************************************************************
+       120-EOJ.
+
+           MOVE TOTAL-LINE-1 TO PRINT-REC
+           WRITE PRINT-REC
+               AFTER ADVANCING 3 LINES
+
+           MOVE TOTAL-HOURS TO TL2-HOURS
+           MOVE TOTAL-RATE TO TL2-RATE
+           MOVE TOTAL-WAGE TO TL2-WAGES
+
+           MOVE TOTAL-LINE-2 TO PRINT-REC
+           WRITE PRINT-REC
+               AFTER ADVANCING 1 LINE
+
+           CLOSE EMPLOYEE-DATA
+                 PAYROLL-DATA.
+      ***************************************************************
+      * 200-HEADINGS.
+      *  - HEADINGS ARE PRINTED
+      ***************************************************************
+       200-HEADINGS.
+
+           MOVE TSO-ID TO PRINT-REC
+           WRITE PRINT-REC
+                 AFTER PAGE
+
+           ADD 1 TO WS-PAGE-CNT
+           MOVE WS-PAGE-CNT TO HL1-PAGE
+           MOVE HEADING-LINE-1 TO PRINT-REC
+           WRITE PRINT-REC
+                 AFTER ADVANCING 3 LINES
+
+           MOVE HEADING-LINE-2 TO PRINT-REC
+           WRITE PRINT-REC
+                 AFTER ADVANCING 3 LINES
+           MOVE HEADING-LINE-3 TO PRINT-REC
+           WRITE PRINT-REC
+                 AFTER ADVANCING 1 LINES
+           MOVE 0 TO WS-LINE-CNT
+           MOVE 2 TO WS-LINES.
+

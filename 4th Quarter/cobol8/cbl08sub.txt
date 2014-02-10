@@ -1,0 +1,68 @@
+        ENVIRONMENT DIVISION.
+        INPUT-OUTPUT SECTION.
+        FILE-CONTROL.
+
+        DATA DIVISION.
+        FILE SECTION.
+
+        WORKING-STORAGE-SECTION.
+
+        01 WORK-FIELDS.
+           05 WS-EMP-AGE              PIC 9(2).
+           05 WS-EMP-YEARS-SERVICE    PIC 9(2).
+           05 WS-CURRENT-DATE         PIC 9(8).
+           05 WS-HIRE-DATE            PIC X(10).
+           05 WS-BIRTH-DATE           PIC X(10).
+
+        LINKAGE SECTION.
+        77 EMPLOYEE-AGE               PIC 9(2).
+        77 YEARS-OF-SERVICE           PIC 9(2).
+        77 EMP-BIRTH-DATE             PIC X(10).
+        77 EMP-HIRE-DATE              PIC X(10).
+
+        PROCEDURE DIVISION USING YEARS-OF-SERVICE
+                                 EMPLOYEE-AGE
+                                 EMP-BIRTH-DATE
+                                 EMP-HIRE-DATE.
+
+        000-MAIN.
+      *    EXEC SQL
+      *       FETCH HIREDATE, BIRTHDATE
+      *          INTO
+      *             :EMP-HIRE-DATE, :EMP-BIRTH-DATE
+      *    END-EXEC
+
+      *    MOVE LINKAGE SECTION VARIABLES TO WORK FIELD VARIABLES
+           PERFORM 100-COMPUTE-AGE
+           PERFORM 110-COMPUTE-YEARS-OF-SERVICE
+           EXIT-PROGRAM.
+      * PART OF 100-COMPUTE VALUES
+
+       100-COMPUTE-AGE.
+           IF CURRENT-DATE > EMP-BIRTH-DATE(5:)
+     *        COMPUTE CURRENT-YEAR - EMP-BIRTH-DATE(1:4) - 1
+           ELSE
+             COMPUTE WS-EMP-AGE = CURRENT-DATE - EMP-BIRTH-DATE(1:4)
+           END-IF.
+
+       110-COMPUTE-YEARS-OF-SERVICE.
+           COMPUTE EMP-HIRE-DATE = FUNCTION DATE-OF-INTEGER(HIRE-DATE)
+      *    COMPUTE CURRENT-DATE = FUNCTION DATE-OF-INTEGER(CURRENT DATE)
+      *    COMPUTE DAYS-OF-SERVICE = CURRENT-DATE - EMP-HIRE-DATE(1:4)
+      *    COMPUTE EMP-BIRTH-DATE = FUNCTION DATE-OF-INTEGER(BIRTH-DATE)
+      *    COMPUTE BIRTH-DATE = CURRENT-DATE - EMP-BIRTH-DATE(1:4)
+      *    IF CURRENT-DATE > EMP-HIRE-DATE(5:)
+           COMPUTE DAYS-OF SERVICE = CURRENT-DATE - EMP-HIRE-DATE
+           COMPUTE YEARS-OF-SERVICE = DAYS-OF-SERVICE / 365
+      *    IF DOH-MONTH > CURRENT-MONTH
+      *       COMPUTE YEARS-OF-SERVICE = YEARS-OF-SERVICE - 1
+      *    END-IF.
+
+
+      *    ELSE
+      *     COMPUTE YEARS-OF-SERVICE = DAYS-OF-SERVICE / 365 - 1
+
+           END-IF.
+
+      *PART OF 000-MAIN
+
